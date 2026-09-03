@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>One Roll — Capture Sequence</title>
+  <style>
+    :root { color-scheme: dark; font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif; }
+    * { box-sizing: border-box; }
+    html, body { min-height: 100%; margin: 0; }
+    body { background:#101112; display:grid; place-items:center; overflow:hidden; color:#d9d7d2; }
+    .workspace { display:grid; justify-items:center; gap:14px; padding:16px; }
+    .stage { width:min(460px, calc((100vh - 84px) * .4791667), calc(100vw - 24px)); aspect-ratio:460/960; position:relative; }
+    .phone { position:absolute; inset:0; width:460px; height:960px; transform-origin:top left; border-radius:64px; overflow:hidden; background:#232323; box-shadow:0 24px 70px rgba(0,0,0,.62), inset 0 1px 0 rgba(255,255,255,.07), inset 0 0 0 1px rgba(0,0,0,.86); }
+    .island { position:absolute; z-index:30; top:22px; left:164px; width:132px; height:36px; border-radius:20px; background:#0a0a0a; box-shadow:inset 0 1px 1px rgba(255,255,255,.025); }
+    .vf-well { position:absolute; z-index:1; left:22px; top:84px; width:416px; height:640px; border-radius:30px; background:#0c0c0c; overflow:hidden; }
+    .capture { position:absolute; z-index:12; left:22px; top:84px; width:416px; height:640px; border-radius:30px; overflow:hidden; transform-origin:50% 0; will-change:left,top,width,height,transform,opacity,box-shadow; }
+    .capture img { width:100%; height:100%; object-fit:cover; display:block; }
+    .ui { position:absolute; z-index:9; left:22px; top:724px; width:416px; height:200px; display:flex; flex-direction:column; align-items:center; gap:16px; padding:12px 0; }
+    .top-controls { height:40px; display:flex; justify-content:center; gap:32px; }
+    .round-control { width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; background:#1e1e1e; color:#8f8c86; box-shadow:inset 0 1px 2px rgba(0,0,0,.6),inset 0 -1px 0 rgba(255,255,255,.05),0 0 0 1px rgba(255,255,255,.04); will-change:transform,opacity; }
+    .lower-controls { flex:1; display:grid; grid-template-columns:1fr auto 1fr; align-items:center; width:100%; padding:0 40px; }
+    .shutter-well { z-index:4; width:120px; height:120px; border-radius:50%; display:flex; align-items:center; justify-content:center; background:#1a1a1a; box-shadow:0 0 0 1px rgba(255,255,255,.07),inset 0 2px 6px rgba(0,0,0,.8); will-change:transform,opacity; }
+    .shutter { width:100px; height:100px; border:0; padding:0; border-radius:50%; background:radial-gradient(circle at 50% 38%,#f08a4c 0%,#e0743a 55%,#c65f2b 100%); box-shadow:0 6px 14px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.35),inset 0 -2px 3px rgba(0,0,0,.25); display:flex; align-items:center; justify-content:center; cursor:pointer; }
+    .shutter::after { content:""; width:72px; height:72px; border-radius:50%; box-shadow:inset 0 0 0 1px rgba(0,0,0,.14); }
+    .settings { justify-self:end; margin-right:20px; will-change:transform,opacity; }
+    .cartridge { position:absolute; z-index:18; left:84px; top:810px; width:61.333px; height:92px; perspective:560px; will-change:left,top,width,height,transform; }
+    .cart-shadow-a,.cart-shadow-b { position:absolute; left:48%; transform:translateX(-50%); border-radius:50%; pointer-events:none; }
+    .cart-shadow-a { bottom:-3px; width:50px; height:8px; background:rgba(0,0,0,.7); filter:blur(3px); }
+    .cart-shadow-b { bottom:-7px; left:46%; width:66px; height:14px; background:rgba(0,0,0,.35); filter:blur(7px); }
+    .cartridge img { position:relative; width:100%; height:100%; display:block; object-fit:contain; transform-origin:50% 100%; transform:rotateY(9deg) rotateX(3deg) rotate(-5deg) translateY(-1px); filter:drop-shadow(-2px 5px 6px rgba(0,0,0,.5)) drop-shadow(0 1px 1px rgba(0,0,0,.6)); }
+    .film { position:absolute; z-index:15; left:150px; top:768px; width:0; height:160px; transform-origin:left center; overflow:hidden; background:transparent; will-change:left,top,width,transform; }
+    .film-photos { position:absolute; z-index:1; inset:0; }
+    .film-photo-cell { position:absolute; overflow:hidden; background:#090706; }
+    .film-photo-cell img { width:100%; height:100%; display:block; object-fit:cover; opacity:0; }
+    .film-skin-body,.film-skin-tail { position:absolute; z-index:2; top:0; height:160px; overflow:hidden; pointer-events:none; }
+    .film-skin-body { left:0; }
+    .film-skin-tail { width:42.85px; }
+    .film-skin-body img,.film-skin-tail img { position:absolute; top:0; left:0; width:284.34px; height:160px; max-width:none; display:block; }
+    .film-skin-tail img { left:-241.49px; }
+    .home-indicator { position:absolute; z-index:30; bottom:10px; left:152px; width:156px; height:5px; border-radius:3px; background:rgba(241,239,234,.28); }
+    .controls { display:flex; align-items:center; gap:8px; padding:6px 8px; border:1px solid rgba(255,255,255,.08); border-radius:999px; background:rgba(28,29,30,.86); box-shadow:0 8px 22px rgba(0,0,0,.28); }
+    .controls button { appearance:none; border:0; border-radius:999px; padding:7px 12px; color:#c9c7c2; background:#292a2b; font:600 12px/1 inherit; cursor:pointer; }
+    .controls button.active { color:#161616; background:#ee8043; }
+    .controls button:disabled { opacity:.45; cursor:default; }
+    svg { display:block; }
+    @media (max-height:700px) { .controls { position:fixed; right:10px; bottom:10px; } }
+  </style>
+</head>
+<body>
+  <main class="workspace">
+    <div class="stage" id="stage">
+      <div class="phone" id="phone">
+        <div class="island"></div>
+        <div class="vf-well"></div>
+        <div class="capture" id="capture"><img src="assets/viewfinder.png" alt="Café viewfinder"></div>
+
+        <div class="ui" id="cameraUi">
+          <div class="top-controls">
+            <div class="round-control" id="flash" aria-label="Flash">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M13 2 5 14h6l-1 8 8-12h-6z"/></svg>
+            </div>
+            <div class="round-control" id="switch" aria-label="Switch camera">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 0 1 13-6"/><path d="M20 12a8 8 0 0 1-13 6"/><path d="M17 2v4h-4"/><path d="M7 22v-4h4"/></svg>
+            </div>
+          </div>
+          <div class="lower-controls">
+            <div></div>
+            <div class="shutter-well" id="shutterWell"><button class="shutter" id="shutter" aria-label="Capture"></button></div>
+            <div class="round-control settings" id="settings" aria-label="Settings">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2Z"/><circle cx="12" cy="12" r="3"/></svg>
+            </div>
+          </div>
+        </div>
+
+        <div class="film" id="film">
+          <div class="film-photos" id="filmPhotos"></div>
+          <div class="film-skin-body" id="filmSkinBody"><img src="assets/film.png" alt=""></div>
+          <div class="film-skin-tail" id="filmSkinTail"><img src="assets/film.png" alt=""></div>
+        </div>
+        <div class="cartridge" id="cartridge">
+          <div class="cart-shadow-a" id="shadowA"></div><div class="cart-shadow-b" id="shadowB"></div>
+          <img id="cartImage" src="assets/cartridge-before.png" alt="One Roll cartridge">
+        </div>
+        <div class="home-indicator"></div>
+      </div>
+    </div>
+    <div class="controls" aria-label="Playback controls">
+      <button id="replay">Replay</button>
+      <button data-speed=".5">0.5×</button>
+      <button class="active" data-speed="1">1×</button>
+      <button data-speed="2">2×</button>
+    </div>
+  </main>
+
+  <script>
+    /* ONE ROLL MOTION CONFIG — all major tuning values live here. */
+    const MOTION = {
+      duration: 4480,
+      shutter: { pressEnd: 140, reboundEnd: 225, depth: 6.25, compression: .04 },
+      controlExit: { flash: 150, cameraSwitch: 210, settings: 270, shutter: 330, duration: 170 },
+      isolate: { start: 160, end: 580, scale: .9, y: 10 },
+      cartridgeLift: { start: 430, end: 650, x:70, y:758, h:138 },
+      cartridgeUnrollPose: { start: 650, end: 970, x:40, y:728, h:176 },
+      filmOpen: { start: 1000, end: 1900, assetWidth:284.34, assetHeight:160, tailX:241.49, tailWidth:42.85, bodyCuts:[111.03,176.49,241.49], frameRects:[{x:49.99,y:47.61,w:61.04,h:68.87},{x:118.51,y:55.60,w:57.98,h:63.60},{x:183.79,y:53.22,w:57.65,h:65.62}], slotInset:70, slotY:8 },
+      photoHover: { start: 1180, end: 2050, x:174, y:656, w:108, h:140 },
+      photoCommit: { start: 2220, approachEnd:2490, end:2550, settleEnd:2670, x:194, y:784, w:68, h:88 },
+      rewind: { start: 2670, end: 3470 },
+      cartridgeReturn: { start: 3470, end: 4050 },
+      uiReturn: { start: 3610, main:3610, flash:3810, cameraSwitch:3870, settings:3930, controlDuration:190, end:4270 },
+      finalSettle: { start:4270, end:4360 },
+      progressAt: 4410,
+      easing: { weighted: 'smoothstep', exit: 'easeInCubic', settle: 'easeOutQuint' }
+    };
+
+    const $ = id => document.getElementById(id);
+    const el = { stage:$('stage'), phone:$('phone'), ui:$('cameraUi'), capture:$('capture'), filmPhotos:$('filmPhotos'), filmSkinBody:$('filmSkinBody'), filmSkinTail:$('filmSkinTail'), flash:$('flash'), cameraSwitch:$('switch'), settings:$('settings'), shutter:$('shutter'), shutterWell:$('shutterWell'), cartridge:$('cartridge'), cartImage:$('cartImage'), shadowA:$('shadowA'), shadowB:$('shadowB'), film:$('film'), replay:$('replay') };
+    const clamp = n => Math.max(0, Math.min(1, n));
+    const span = (t,a,b) => clamp((t-a)/(b-a));
+    const lerp = (a,b,p) => a+(b-a)*p;
+    const smooth = p => p*p*(3-2*p);
+    const inCubic = p => p*p*p;
+    const outCubic = p => 1-Math.pow(1-p,3);
+    const outQuint = p => 1-Math.pow(1-p,5);
+    const inOutCubic = p => p<.5 ? 4*p*p*p : 1-Math.pow(-2*p+2,3)/2;
+    const qbez = (a,b,c,p) => (1-p)*(1-p)*a + 2*(1-p)*p*b + p*p*c;
+    const MAX_EXPOSURES=4;
+    const EXPOSURE_STORAGE_KEY='one-roll-v3-remaining-exposures-v12';
+    const readRemaining=()=>{ try { const raw=localStorage.getItem(EXPOSURE_STORAGE_KEY); if(raw===null) return MAX_EXPOSURES; const n=Number(raw); return Number.isInteger(n)&&n>=0&&n<=MAX_EXPOSURES?n:MAX_EXPOSURES; } catch { return MAX_EXPOSURES; } };
+    const writeRemaining=n=>{ try { localStorage.setItem(EXPOSURE_STORAGE_KEY,String(n)); } catch {} };
+    let speed=1, raf=0, running=false, startedAt=0;
+    let currentCart={x:84,y:810,h:92,w:61.333,ry:9,rz:-5,lift:0};
+    let remainingExposures=readRemaining();
+    let exposurePending=false;
+
+    function exposureGeometry() {
+      const occupied=MAX_EXPOSURES-remainingExposures;
+      // Always expose the active aperture plus a believable continuation aperture.
+      // Additional occupied frames push right, using the PNG's native three openings.
+      const frameCount=Math.min(3,Math.max(2,occupied+1));
+      const f=MOTION.filmOpen;
+      return { occupied,targetIndex:0,frameCount,bodyWidth:f.bodyCuts[frameCount-1],visibleLength:f.bodyCuts[frameCount-1]+f.tailWidth };
+    }
+
+    function cartridgeAssetFor(remaining) {
+      return remaining>=4?'assets/cartridge-after.png':'assets/cartridge-before.png';
+    }
+
+    function syncExposureVisuals() {
+      const state=exposureGeometry();
+      el.filmPhotos.replaceChildren();
+      for(let i=0;i<state.frameCount;i++) {
+        const frame=document.createElement('div');
+        const isTarget=i===0;
+        const isOccupied=i>0&&i<=state.occupied;
+        const rect=MOTION.filmOpen.frameRects[i];
+        frame.className='film-photo-cell';
+        frame.dataset.frame=String(i);
+        frame.dataset.state=isTarget?'target':isOccupied?'occupied':'continuation';
+        frame.dataset.shot=isTarget?'next':isOccupied?String(state.occupied-i+1):'';
+        Object.assign(frame.style,{left:rect.x+'px',top:rect.y+'px',width:rect.w+'px',height:rect.h+'px',borderRadius:'6px'});
+        const img=document.createElement('img');
+        img.src='assets/viewfinder.png'; img.alt='';
+        img.style.opacity=isOccupied?1:0;
+        frame.appendChild(img); el.filmPhotos.appendChild(frame);
+        if(isTarget) { el.target=frame; el.committedPhoto=img; }
+      }
+      el.filmSkinBody.style.width=state.bodyWidth+'px';
+      el.filmSkinTail.style.left=state.bodyWidth+'px';
+      el.cartImage.dataset.remaining=String(remainingExposures);
+      return state;
+    }
+
+    function fit() {
+      const scale=el.stage.clientWidth/460;
+      el.phone.style.transform=`scale(${scale})`;
+    }
+    addEventListener('resize',fit); fit();
+
+    function control(node, amount, direction=1) {
+      const p=smooth(clamp(amount));
+      node.style.opacity=1-p;
+      node.style.transform=`translateY(${lerp(0,5.5*direction,p)}px) scale(${lerp(1,.965,p)})`;
+    }
+
+    function returnControl(node, t, start, duration) {
+      const p=outQuint(span(t,start,start+duration));
+      node.style.opacity=p;
+      node.style.transform=`translateY(${lerp(5.5,0,p)}px) scale(${lerp(.96,1,p)})`;
+    }
+
+    function cartPose(x,y,h,ry,rz,lift) {
+      currentCart={x,y,h,w:h*2/3,ry,rz,lift};
+      el.cartridge.style.left=x+'px'; el.cartridge.style.top=y+'px';
+      el.cartridge.style.width=(h*2/3)+'px'; el.cartridge.style.height=h+'px';
+      el.cartImage.style.transform=`rotateY(${ry}deg) rotateX(3deg) rotate(${rz}deg) translateY(-1px)`;
+      el.cartImage.style.filter=`drop-shadow(-2px ${5+lift*14}px ${6+lift*12}px rgba(0,0,0,.5)) drop-shadow(0 1px 1px rgba(0,0,0,.6))`;
+      el.shadowA.style.width=(50+lift*10)+'px'; el.shadowA.style.background=`rgba(0,0,0,${.7-lift*.35})`;
+      el.shadowB.style.width=(66+lift*30)+'px'; el.shadowB.style.background=`rgba(0,0,0,${.35-lift*.15})`;
+    }
+
+    function captureBox(x,y,w,h,r,opacity=1,shadow='none') {
+      Object.assign(el.capture.style,{left:x+'px',top:y+'px',width:w+'px',height:h+'px',borderRadius:r+'px',opacity,boxShadow:shadow,transform:'none'});
+    }
+
+    function render(t) {
+      const roll=exposureGeometry();
+      const activeFilmX=40+(176*2/3)-MOTION.filmOpen.slotInset;
+      const activeFilmY=728+MOTION.filmOpen.slotY;
+      const targetRect=MOTION.filmOpen.frameRects[0];
+      const targetX=activeFilmX+targetRect.x;
+      const targetY=activeFilmY+targetRect.y;
+      // Mechanical shutter depression and crisp rebound.
+      let press=0;
+      if(t<MOTION.shutter.pressEnd) press=outQuint(span(t,0,MOTION.shutter.pressEnd));
+      else if(t<MOTION.shutter.reboundEnd) press=1-outQuint(span(t,MOTION.shutter.pressEnd,MOTION.shutter.reboundEnd));
+      el.shutter.style.transform=`translateY(${MOTION.shutter.depth*press}px) scale(${1-MOTION.shutter.compression*press})`;
+      el.shutter.style.boxShadow=`0 ${lerp(6,1,press)}px ${lerp(14,3,press)}px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.35),inset 0 -2px 3px rgba(0,0,0,.25)`;
+
+      // Deliberate stagger out; inverse hierarchy on return.
+      const returning=t>=MOTION.uiReturn.start;
+      const exitAmount=(start)=>smooth(span(t,start,start+MOTION.controlExit.duration));
+      if(!returning) {
+        control(el.flash,exitAmount(MOTION.controlExit.flash));
+        control(el.cameraSwitch,exitAmount(MOTION.controlExit.cameraSwitch));
+        control(el.settings,exitAmount(MOTION.controlExit.settings));
+        control(el.shutterWell,exitAmount(MOTION.controlExit.shutter));
+      } else {
+        // Main control first; small controls return on a literal 40 ms cadence.
+        returnControl(el.shutterWell,t,MOTION.uiReturn.main,MOTION.uiReturn.controlDuration);
+        returnControl(el.flash,t,MOTION.uiReturn.flash,MOTION.uiReturn.controlDuration);
+        returnControl(el.cameraSwitch,t,MOTION.uiReturn.cameraSwitch,MOTION.uiReturn.controlDuration);
+        returnControl(el.settings,t,MOTION.uiReturn.settings,MOTION.uiReturn.controlDuration);
+      }
+      const seat=outQuint(span(t,MOTION.finalSettle.start,MOTION.finalSettle.end));
+      if(t<MOTION.uiReturn.start) el.ui.style.transform='none';
+      else if(t<MOTION.finalSettle.start) el.ui.style.transform='translateY(-1.25px)';
+      else el.ui.style.transform=`translateY(${lerp(-1.25,0,seat)}px)`;
+
+      // One image layer: full viewfinder → isolated frame → hover → target → wound away → restored.
+      if(t < MOTION.photoHover.start) {
+        const p=smooth(span(t,MOTION.isolate.start,MOTION.isolate.end));
+        const w=lerp(416,374.4,p), h=lerp(640,576,p);
+        captureBox(lerp(22,42.8,p),lerp(84,94,p),w,h,30,1,`0 ${24*p}px ${40*p}px rgba(0,0,0,.5),0 0 0 1px rgba(255,255,255,${.22*p})`);
+      } else if(t < MOTION.photoCommit.start) {
+        const p=inOutCubic(span(t,MOTION.photoHover.start,MOTION.photoHover.end));
+        captureBox(lerp(42.8,174,p),lerp(94,656,p),lerp(374.4,108,p),lerp(576,140,p),lerp(30,3,p),1,`0 ${lerp(24,16,p)}px ${lerp(40,28,p)}px rgba(0,0,0,.55),0 0 0 1px rgba(255,255,255,.1)`);
+      } else if(t < MOTION.photoCommit.approachEnd) {
+        const p=outCubic(span(t,MOTION.photoCommit.start,MOTION.photoCommit.approachEnd));
+        const approachW=targetRect.w*1.015, approachH=targetRect.h*1.015;
+        const approachX=targetX-(approachW-targetRect.w)/2, approachY=targetY-(approachH-targetRect.h)/2;
+        captureBox(lerp(174,approachX,p),lerp(656,approachY,p),lerp(108,approachW,p),lerp(140,approachH,p),lerp(3,0,p),1,`0 ${lerp(16,2,p)}px ${lerp(28,5,p)}px rgba(0,0,0,.45)`);
+      } else if(t < MOTION.photoCommit.end) {
+        const p=outQuint(span(t,MOTION.photoCommit.approachEnd,MOTION.photoCommit.end));
+        const approachW=targetRect.w*1.015, approachH=targetRect.h*1.015;
+        const approachX=targetX-(approachW-targetRect.w)/2, approachY=targetY-(approachH-targetRect.h)/2;
+        captureBox(lerp(approachX,targetX,p),lerp(approachY,targetY,p),lerp(approachW,targetRect.w,p),lerp(approachH,targetRect.h,p),0,1,`0 ${lerp(2,0,p)}px ${lerp(5,2,p)}px rgba(0,0,0,.45)`);
+      } else if(t < MOTION.uiReturn.start+110) {
+        el.capture.style.opacity=0;
+      } else {
+        const p=outQuint(span(t,MOTION.uiReturn.start+110,MOTION.uiReturn.end));
+        captureBox(22,84,416,640,30,p,'none');
+      }
+
+      // Persistent cartridge follows the supplied keyframe poses on one continuous curve.
+      if(t < MOTION.cartridgeLift.start) cartPose(84,810,92,9,-5,0);
+      else if(t < MOTION.cartridgeUnrollPose.start) {
+        const p=outQuint(span(t,MOTION.cartridgeLift.start,MOTION.cartridgeLift.end));
+        cartPose(qbez(84,78,70,p),qbez(810,778,758,p),lerp(92,138,p),lerp(9,3,p),lerp(-5,-1.5,p),p);
+      } else if(t < MOTION.rewind.start) {
+        const p=outQuint(span(t,MOTION.cartridgeUnrollPose.start,MOTION.cartridgeUnrollPose.end));
+        cartPose(qbez(70,54,40,p),qbez(758,742,728,p),lerp(138,176,p),lerp(3,0,p),lerp(-1.5,0,p),lerp(1,.6,p));
+      } else if(t < MOTION.cartridgeReturn.start) {
+        // Rewind changes only the film mask. Cartridge and slot geometry stay locked.
+        cartPose(40,728,176,0,0,.6);
+      } else {
+        const p=outQuint(span(t,MOTION.cartridgeReturn.start,MOTION.cartridgeReturn.end));
+        cartPose(qbez(40,68,84,p),qbez(728,780,810,p),lerp(176,92,p),lerp(0,9,p),lerp(0,-5,p),lerp(.6,0,p));
+      }
+
+      // Restrained spool reaction: rotation only, so the slot origin never jitters vertically.
+      const baseCart={...currentCart};
+      let reactionX=0, reactionY=0, reactionR=0;
+      if(t>=MOTION.filmOpen.start && t<MOTION.filmOpen.end) {
+        const p=smooth(span(t,MOTION.filmOpen.start,MOTION.filmOpen.end));
+        reactionR=-.28*Math.sin(Math.PI*p);
+      } else if(t>=MOTION.rewind.start && t<MOTION.rewind.end) {
+        const p=smooth(span(t,MOTION.rewind.start,MOTION.rewind.end));
+        reactionR=.34*Math.sin(Math.PI*p);
+      }
+      if(reactionX||reactionY||reactionR) cartPose(baseCart.x+reactionX,baseCart.y+reactionY,baseCart.h,baseCart.ry,baseCart.rz+reactionR,baseCart.lift);
+
+      // The strip's origin is physically locked beneath the moving cartridge's exit slot.
+      // Only the far edge changes, so unroll and rewind are a continuous material reveal.
+      const filmX=currentCart.x+currentCart.w-MOTION.filmOpen.slotInset;
+      const filmY=currentCart.y+MOTION.filmOpen.slotY;
+      const rewindP=inOutCubic(span(t,MOTION.rewind.start,MOTION.rewind.end));
+      const maxFilmW=roll.visibleLength;
+      let visibleFilmW=0;
+      if(t>=MOTION.filmOpen.start && t<MOTION.photoCommit.start) {
+        visibleFilmW=maxFilmW*outQuint(span(t,MOTION.filmOpen.start,MOTION.filmOpen.end));
+      } else if(t>=MOTION.photoCommit.start && t<MOTION.rewind.start) {
+        // Freeze the complete strip geometry until ownership has transferred.
+        visibleFilmW=maxFilmW;
+      } else if(t>=MOTION.rewind.start && t<MOTION.rewind.end) {
+        visibleFilmW=Math.max(0,maxFilmW*(1-rewindP));
+      }
+      // Width is the physical extrusion. The anchored left edge never moves, while the
+      // rounded element edge travels with the free end instead of exposing a hard clip plane.
+      el.film.style.width=Math.max(0,visibleFilmW)+'px'; el.film.style.left=filmX+'px'; el.film.style.top=filmY+'px';
+      el.film.style.clipPath='none';
+      const committed=t>=MOTION.photoCommit.end && t<MOTION.rewind.end;
+      el.committedPhoto.style.opacity=committed?1:0;
+      el.committedPhoto.style.transform='scale(1)';
+      el.filmPhotos.style.transform='none';
+      // A stable material path: no animated Y skew or vertical oscillation.
+      el.film.style.transform='rotate(-1.2deg)';
+
+      if(t>=MOTION.progressAt && exposurePending) {
+        remainingExposures=Math.max(0,remainingExposures-1);
+        writeRemaining(remainingExposures);
+        exposurePending=false;
+        el.cartImage.src=cartridgeAssetFor(remainingExposures);
+        syncExposureVisuals();
+      }
+    }
+
+    function reset() {
+      cancelAnimationFrame(raf); running=false; exposurePending=false;
+      el.cartImage.src=cartridgeAssetFor(remainingExposures); syncExposureVisuals(); render(0);
+      el.replay.disabled=remainingExposures<=0;
+    }
+    function play() {
+      if(running||remainingExposures<=0) return;
+      running=true; exposurePending=true; el.replay.disabled=true; startedAt=performance.now();
+      const tick=now=>{ const t=(now-startedAt)*speed; render(Math.min(t,MOTION.duration)); if(t<MOTION.duration) raf=requestAnimationFrame(tick); else { running=false; el.replay.disabled=remainingExposures<=0; } };
+      raf=requestAnimationFrame(tick);
+    }
+    el.shutter.addEventListener('click',play); el.replay.addEventListener('click',()=>{reset(); requestAnimationFrame(play);});
+    document.querySelectorAll('[data-speed]').forEach(btn=>btn.addEventListener('click',()=>{ speed=Number(btn.dataset.speed); document.querySelectorAll('[data-speed]').forEach(b=>b.classList.toggle('active',b===btn)); }));
+    reset();
+  </script>
+</body>
+</html>
